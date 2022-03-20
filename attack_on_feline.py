@@ -12,7 +12,7 @@ from scoreboard import Scoreboard
 from ship import Ship
 from bullet import Bullet
 from alien import Alien
-from button import Buttons
+from buttons import Buttons
 
 class AlienInvasion:        # this one class contains the 'whole' program
     """Overall class to manage game assets and behavior."""
