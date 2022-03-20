@@ -1,31 +1,36 @@
-import pygame.font      # maybe not necessary
+import pygame
 
-class Button:
-    def __init__(self, ai_game, msg):
+# from game_stats import Gamestats
+
+class Buttons:
+    def __init__(self, ai_game):
         """Initialize button attributes."""
         self.screen = ai_game.screen
+        self.stats = ai_game.stats
         self.screen_rect = self.screen.get_rect()
+        # Build buttons. Repetitive, but works for now.
+        # New Game button.
+        self.img1 = pygame.image.load('./images/new_game.png')
+        self.img1_rect = self.img1.get_rect()
+        self.img1_rect.top = 150
+        self.img1_rect.left = self.screen_rect.right /2 - 260
+        # Continue button.
+        self.img2 = pygame.image.load('./images/continue0.png')
+        self.img2_rect = self.img2.get_rect()
+        self.img2_rect.top = 150 + self.img2_rect.height + 50
+        self.img2_rect.left = self.screen_rect.right /2 - 260
+        # Exit button.
+        self.img3 = pygame.image.load('./images/exit.png')
+        self.img3_rect = self.img3.get_rect()
+        self.img3_rect.top = 150 + (self.img3_rect.height + 50) *2
+        self.img3_rect.left = self.screen_rect.right /2 - 260
+    
 
-        # Set the dimensions and proeprties of the button.
-        self.width, self.height = 200, 50
-        self.button_color = (0, 255, 0, 50)
-        self.text_color = (255, 255, 255)
-        self.font = pygame.font.SysFont(None, 48)
-
-        # Build the button's rect object and center it.
-        self.rect = pygame.Rect(0, 0, self.width, self.height)
-        self.rect.center = self.screen_rect.center
-
-        # The button message needs to be prepped only once.
-        self._prep_msg(msg)
-
-    def _prep_msg(self, msg):
-        """Turn msg into a rendered image and center text on the button."""
-        self.msg_image = self.font.render(msg, True, self.text_color, self.button_color)
-        self.msg_image_rect = self.msg_image.get_rect()
-        self.msg_image_rect.center = self.rect.center
-
-    def draw_button(self):
-        # Draw blank button and then draw message. 
-        self.screen.fill(self.button_color, self.rect)
-        self.screen.blit(self.msg_image, self.msg_image_rect)
+    def draw_buttons(self):
+        if self.stats.continue_gray:
+            self.img2 = pygame.image.load('./images/continue0.png')
+        else:
+            self.img2 = pygame.image.load('./images/continue1.png')
+        self.screen.blit(self.img1, self.img1_rect)
+        self.screen.blit(self.img2, self.img2_rect)
+        self.screen.blit(self.img3, self.img3_rect)

@@ -1,18 +1,19 @@
+import pygame
+
 class Settings:
     """A class to store all settings for Alien Invastion."""        # this class just creates data, no functions yet
 
-    def __init__(self):
+    def __init__(self, ai_game):
         """Initialize the game's settings."""
+        self.screen = ai_game.screen
         # Screen settings
-        # self.screen_width = 1200
-        # self.screen_height = 800      # not relevant
         self.bg_color = (58, 38, 88)
+        self.trans_bg = (200, 200, 200, 150)
         # Ship settings
         self.ship_limit = 3
         # Bullet settings
         self.bullet_width = 3       # height and weight are required for rect
         self.bullet_height = 15     # will keep these so I can change when testing
-        # self.bullets_allowed = 5      # screw this limit
         # Alien settings
         self.fleet_drop_speed = 15
         # How quickly the game speeds up
@@ -42,3 +43,8 @@ class Settings:
         self.alien_speed *= self.speedup_scale
 
         self.alien_points = int(self.alien_points * self.score_scale)
+
+    def set_trans_bg(self):         # make a transparent background when in PAUSE
+        self.surface = pygame.Surface((self.screen.get_width(), self.screen.get_height()), pygame.SRCALPHA)
+        self.surface.fill(self.trans_bg)
+        self.screen.blit(self.surface, (0, 0))

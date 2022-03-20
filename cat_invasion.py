@@ -10,36 +10,33 @@ from settings import Settings
 from game_stats import GameStats
 from scoreboard import Scoreboard
 from ship import Ship
-from bullet import Bullet       # Imports classes from different files
+from bullet import Bullet
 from alien import Alien
-from button import Button
+from button import Buttons
 
 class AlienInvasion:        # this one class contains the 'whole' program
     """Overall class to manage game assets and behavior."""
 
     def __init__(self):
         """Initialize the game, and create game resources."""
-        pygame.init()       # method within pygame, to initiate the module (?)
-        self.settings = Settings()
+        pygame.init()       # pygame method to initialize the program
 
-        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)        # full screen. How does this work tho (?)
+        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        self.settings = Settings(self)
         self.settings.screen_width = self.screen.get_rect().width
         self.settings.screen_height = self.screen.get_rect().height
-        pygame.display.set_caption('Alien Invasion')        # what (?)
+        pygame.display.set_caption('Alien Invasion')
 
-        # Create an instance to store game statistics and create a scoreboard.
         self.stats = GameStats(self)
         self.sb = Scoreboard(self)
 
-        self.ship = Ship(self)      # is ai_game in (self, ai_game) not for self
-        self.bullets = pygame.sprite.Group()    # .Group()is a pygame list, with some extra functionality, no idea how it works
-        self.bullet = Bullet(self)  # but actually, self is for ai_game, since self self is created with an instance
+        self.ship = Ship(self)      # (self) is ai_game in (self, ai_game) and not self (self is automatic)
+        self.bullets = pygame.sprite.Group()    # .Group()is a pygame list, with some extra functionality
+        self.bullet = Bullet(self)
         self.aliens = pygame.sprite.Group()
+        self.buttons = Buttons(self)
 
         self._create_fleet()
-
-        # Make the Play button.
-        self.play_button = Button(self,"Play")      # this works because we need only one button.
 
 
     def run_game(self):         # the loop. these things are done in this order, until the game is over.
@@ -57,6 +54,12 @@ class AlienInvasion:        # this one class contains the 'whole' program
             # Make the most recently drawn screen visible.
             pygame.display.flip()       # makes the whole area (screen) visible. similar to display.update() (?)
 
+        
+    def pause_screen(self):
+        """Open a screen with options and buttons"""
+        self.stats.game_active = False
+        pygame.mouse.set_visible(True)
+
 
     def _check_events(self):
         """Respond to keypreses and mouse events"""
@@ -67,18 +70,19 @@ class AlienInvasion:        # this one class contains the 'whole' program
                 self._check_keyup_events(event)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
-                self._check_play_button(mouse_pos)
+                self._check_new_game(mouse_pos)
+                self._check_continue(mouse_pos)
+                self._check_exit(mouse_pos)
     
 
-    def _check_play_button(self, mouse_pos):
-        """Start a new game when the player clicks Play."""
-        button_clicked = self.play_button.rect.collidepoint(mouse_pos)
-        if button_clicked and not self.stats.game_active:
-            # Reset the game settings.
+    def _check_new_game(self, mouse_pos):
+        """Reset everything except the highest score and create a new game."""
+        new_game_clicked = self.buttons.img1_rect.collidepoint(mouse_pos)
+        if new_game_clicked and not self.stats.game_active:
             self.settings.initialize_dynamic_settings()
-            # Reset the game statistics.
             self.stats.reset_stats()
             self.stats.game_active = True
+            self.stats.continue_gray = False
             self.sb.prep_score()
             self.sb.prep_level()
             self.sb.prep_ships()
@@ -94,6 +98,19 @@ class AlienInvasion:        # this one class contains the 'whole' program
             # Hide the mouse cursos.
             pygame.mouse.set_visible(False)
 
+    
+    def _check_continue(self, mouse_pos):
+        continue_clicked = self.buttons.img2_rect.collidepoint(mouse_pos)
+        if continue_clicked and not self.stats.game_active and not self.stats.continue_gray:
+            self.stats.game_active = True
+            pygame.mouse.set_visible(False)
+
+    
+    def _check_exit(self, mouse_pos):
+        exit_clicked = self.buttons.img3_rect.collidepoint(mouse_pos)
+        if exit_clicked and not self.stats.game_active:
+            sys.exit()
+
 
     def _check_keydown_events(self, event):
         """Respond to keypresses."""        # just turns flag to True, except for q
@@ -105,12 +122,17 @@ class AlienInvasion:        # this one class contains the 'whole' program
             self.ship.moving_top = True
         elif event.key == pygame.K_s:
             self.ship.moving_bottom = True
-        elif event.key == pygame.K_p:
-            sys.exit()
-        elif event.key == pygame.K_RETURN:
-            self._check_play_button((self.settings.screen_width /2, self.settings.screen_height /2))
+        elif event.key == pygame.K_n:
+            self._check_new_game((self.settings.screen_width /2, 200))
+        elif event.key == pygame.K_ESCAPE:
+            if self.stats.game_active == True:
+                self.pause_screen()
+            else:
+                self._check_continue((self.settings.screen_width /2, self.settings.screen_height /2))
+        elif self.stats.game_active == False and event.key == pygame.K_q:
+            self._check_exit((self.settings.screen_width /2, self.settings.screen_height /2 + 250))
         elif event.key == pygame.K_SPACE:
-            self.bullet.shooting = True            # my own flag, so shooting can be continuous as well
+            self.bullet.shooting = True            # shooting can be continuous as well
     
 
     def _check_keyup_events(self, event):
@@ -192,6 +214,7 @@ class AlienInvasion:        # this one class contains the 'whole' program
             # Pause.
             sleep(0.5)
         else:
+            self.stats.continue_gray = True
             self.stats.game_active = False
             pygame.mouse.set_visible(True)
 
@@ -253,7 +276,7 @@ class AlienInvasion:        # this one class contains the 'whole' program
 
     def _update_screen(self):
         """Update images on the screen, and flip to the new screen"""
-        self.screen.fill(self.settings.bg_color)        # fills the background, so                  
+        self.screen.fill(self.settings.bg_color)        # fills the background                 
         for bullet in self.bullets.sprites():
             bullet.draw_bullet()            
         self.ship.blitme()          # first draw the bullets, so the ship can be drawn on top!!
@@ -264,7 +287,8 @@ class AlienInvasion:        # this one class contains the 'whole' program
 
         # Draw the play button if the game is inactive.
         if not self.stats.game_active:
-            self.play_button.draw_button()
+            self.settings.set_trans_bg()
+            self.buttons.draw_buttons()
 
         pygame.display.flip()           # again (?)
     
