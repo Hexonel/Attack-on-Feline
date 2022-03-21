@@ -6,14 +6,17 @@ class Settings:
     def __init__(self, ai_game):
         """Initialize the game's settings."""
         self.screen = ai_game.screen
+        self.stats = ai_game.stats
         # Screen settings
         self.bg_color = (58, 38, 88)
         self.trans_bg = (200, 200, 200, 150)
         # Ship settings
-        self.ship_limit = 3
         # Bullet settings
-        self.bullet_width = 3       # height and weight are required for rect
-        self.bullet_height = 15     # will keep these so I can change when testing
+        self.bullet_info = {
+            1: {'image': './images/bullet1.png', 'delete': True, 'speed': 15}, 
+            2: {'image': './images/bullet2.png', 'delete': False, 'speed': 20}
+        }
+        self.bullet_speed = self.bullet_info[self.stats.bullet_level]['speed']
         # Alien settings
         self.fleet_drop_speed = 15
         # How quickly the game speeds up
@@ -27,7 +30,7 @@ class Settings:
     def initialize_dynamic_settings(self):
         """Initialize settings that change throughout the game."""
         self.ship_speed = 8.5
-        self.bullet_speed = 15
+        # self.bullet_speed = 15
         self.alien_speed = 2.5
 
         # fleet_direction of 1 represents right; -1 represents left.
@@ -39,7 +42,7 @@ class Settings:
     def increase_speed(self):
         """Increase speed settings and alien point values."""
         self.ship_speed *= self.speedup_scale
-        self.bullet_speed *= self.speedup_scale
+        # self.bullet_speed *= self.speedup_scale
         self.alien_speed *= self.speedup_scale
 
         self.alien_points = int(self.alien_points * self.score_scale)

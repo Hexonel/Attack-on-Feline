@@ -1,7 +1,5 @@
 #! /usr/bin/env python3
 # alien_invastion.py - The making of a 'space invader'-ish game!
-
-import sys
 from time import sleep
 
 import pygame
@@ -10,9 +8,10 @@ from settings import Settings
 from game_stats import GameStats
 from scoreboard import Scoreboard
 from ship import Ship
-from bullet import Bullet
+from bullets import Bullet
 from alien import Alien
 from buttons import Buttons
+from power_ups import PowerUps
 
 class AlienInvasion:        # this one class contains the 'whole' program
     """Overall class to manage game assets and behavior."""
@@ -22,18 +21,22 @@ class AlienInvasion:        # this one class contains the 'whole' program
         pygame.init()       # pygame method to initialize the program
 
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        self.screen_rect = self.screen.get_rect()
+        self.stats = GameStats(self)
         self.settings = Settings(self)
         self.settings.screen_width = self.screen.get_rect().width
         self.settings.screen_height = self.screen.get_rect().height
         pygame.display.set_caption('Alien Invasion')
 
-        self.stats = GameStats(self)
+        # self.stats = GameStats(self)
         self.sb = Scoreboard(self)
 
         self.ship = Ship(self)      # (self) is ai_game in (self, ai_game) and not self (self is automatic)
         self.bullets = pygame.sprite.Group()    # .Group()is a pygame list, with some extra functionality
         self.bullet = Bullet(self)
         self.aliens = pygame.sprite.Group()
+        self.power_ups = pygame.sprite.Group()
+        self.power_up = PowerUps(self)
         self.buttons = Buttons(self)
 
         self._create_fleet()
@@ -47,18 +50,13 @@ class AlienInvasion:        # this one class contains the 'whole' program
             if self.stats.game_active:          # Just lets you check for events, and updates screen accordingly
                 self.ship.update()          # 2) updates ship (coordinates, images and what not)
                 self._update_bullets()      # 3) updates bullet (coordinates, images and what now)
+                self._update_power_ups()
                 self._update_aliens()       # 4) update after bullets, to see if they've been shot.
 
             self._update_screen()       # 5) draws above info, so that everything is visible to a person
             
             # Make the most recently drawn screen visible.
             pygame.display.flip()       # makes the whole area (screen) visible. similar to display.update() (?)
-
-        
-    def pause_screen(self):
-        """Open a screen with options and buttons"""
-        self.stats.game_active = False
-        pygame.mouse.set_visible(True)
 
 
     def _check_events(self):
@@ -70,46 +68,9 @@ class AlienInvasion:        # this one class contains the 'whole' program
                 self._check_keyup_events(event)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
-                self._check_new_game(mouse_pos)
-                self._check_continue(mouse_pos)
-                self._check_exit(mouse_pos)
-    
-
-    def _check_new_game(self, mouse_pos):
-        """Reset everything except the highest score and create a new game."""
-        new_game_clicked = self.buttons.img1_rect.collidepoint(mouse_pos)
-        if new_game_clicked and not self.stats.game_active:
-            self.settings.initialize_dynamic_settings()
-            self.stats.reset_stats()
-            self.stats.game_active = True
-            self.stats.continue_gray = False
-            self.sb.prep_score()
-            self.sb.prep_level()
-            self.sb.prep_ships()
-
-            # Get rid of any remaining aliens and bullets.
-            self.aliens.empty()
-            self.bullets.empty()
-
-            # Create a new fleet and center the ship.
-            self._create_fleet()
-            self.ship.center_ship()
-                
-            # Hide the mouse cursos.
-            pygame.mouse.set_visible(False)
-
-    
-    def _check_continue(self, mouse_pos):
-        continue_clicked = self.buttons.img2_rect.collidepoint(mouse_pos)
-        if continue_clicked and not self.stats.game_active and not self.stats.continue_gray:
-            self.stats.game_active = True
-            pygame.mouse.set_visible(False)
-
-    
-    def _check_exit(self, mouse_pos):
-        exit_clicked = self.buttons.img3_rect.collidepoint(mouse_pos)
-        if exit_clicked and not self.stats.game_active:
-            sys.exit()
+                self.buttons._check_new_game(self, mouse_pos)
+                self.buttons._check_continue(mouse_pos)
+                self.buttons._check_exit(mouse_pos)
 
 
     def _check_keydown_events(self, event):
@@ -123,14 +84,14 @@ class AlienInvasion:        # this one class contains the 'whole' program
         elif event.key == pygame.K_s:
             self.ship.moving_bottom = True
         elif event.key == pygame.K_n:
-            self._check_new_game((self.settings.screen_width /2, 200))
+            self.buttons._check_new_game(self, (self.settings.screen_width /2, 200))
         elif event.key == pygame.K_ESCAPE:
             if self.stats.game_active == True:
                 self.pause_screen()
             else:
-                self._check_continue((self.settings.screen_width /2, self.settings.screen_height /2))
+                self.buttons._check_continue((self.settings.screen_width /2, self.settings.screen_height /2))
         elif self.stats.game_active == False and event.key == pygame.K_q:
-            self._check_exit((self.settings.screen_width /2, self.settings.screen_height /2 + 250))
+            self.buttons._check_exit((self.settings.screen_width /2, self.settings.screen_height /2 + 250))
         elif event.key == pygame.K_SPACE:
             self.bullet.shooting = True            # shooting can be continuous as well
     
@@ -150,8 +111,14 @@ class AlienInvasion:        # this one class contains the 'whole' program
             self.bullet.time = 6           # required!! so there is no delay the next time space is pressed.
 
 
+    def pause_screen(self):
+        """Open a screen with options and buttons"""
+        self.stats.game_active = False
+        pygame.mouse.set_visible(True)
+
+
     def _update_bullets(self):
-        """Update position of bulets and get rid of old bullets."""
+        """Update position of bullets and get rid of old bullets."""
         # Update bullet positions
         self.bullets.update()       # Group() updates each sprite in the Group, defined at the top 
         self.bullet.shoot_bullet(self) # need self included, an instance of this class
@@ -160,13 +127,13 @@ class AlienInvasion:        # this one class contains the 'whole' program
             if bullet.rect.bottom <= 0:         # check this ^ a bit, to see why bother with this
                 self.bullets.remove(bullet)
         self._check_bullet_alien_collisions()
-
+        
 
     def _check_bullet_alien_collisions(self):
         """Respond to bullet-alien collisions."""
         # Remove any bullets and aliens that have collided.
         collisions = pygame.sprite.groupcollide(    # checks for bullet and alien rects that are overlaping
-            self.bullets,self.aliens, True, True)   # True(bullet) and True(alien) will delete thqe item it is connected to
+            self.bullets,self.aliens, self.settings.bullet_info[self.stats.bullet_level]['delete'], True)   # True(bullet) and True(alien) will delete thqe item it is connected to
         if collisions:
             for aliens in collisions.values():      # change a dict into a list which is 'hit aliens' long
                 self.stats.score += self.settings.alien_points * len(aliens)
@@ -206,13 +173,16 @@ class AlienInvasion:        # this one class contains the 'whole' program
             # Get rid of any remaining aliens and bullets.
             self.aliens.empty()
             self.bullets.empty()
+            self.power_ups.empty()
 
             # Create a new fleet and center the ship.
             self._create_fleet()
             self.ship.center_ship()
+            if self.stats.bullet_level > 1:
+                self.stats.bullet_level -= 1
 
             # Pause.
-            sleep(0.5)
+            sleep(1)
         else:
             self.stats.continue_gray = True
             self.stats.game_active = False
@@ -274,6 +244,26 @@ class AlienInvasion:        # this one class contains the 'whole' program
         self.settings.fleet_direction *= -1
 
 
+    def _update_power_ups(self):
+        """Update position of power_ups and get rid of old power_ups."""
+        # Update power_ups positions
+        self.power_up._create_power_up(self)
+        self.power_ups.update()
+        for power_up in self.power_ups.copy():
+            if power_up.rect.top >= self.screen_rect.bottom:
+                self.power_ups.remove(power_up)
+            elif pygame.sprite.spritecollideany(self.ship, self.power_ups):
+                self._power_ship_collisions()
+                self.power_ups.remove(power_up)
+
+    
+    def _power_ship_collisions(self):
+        """Check if the ship collected the power up."""
+        if self.stats.bullet_level < 2 :
+            # Limited to a single power_up at the moment.
+            self.stats.bullet_level += 1
+
+
     def _update_screen(self):
         """Update images on the screen, and flip to the new screen"""
         self.screen.fill(self.settings.bg_color)        # fills the background                 
@@ -281,11 +271,11 @@ class AlienInvasion:        # this one class contains the 'whole' program
             bullet.draw_bullet()            
         self.ship.blitme()          # first draw the bullets, so the ship can be drawn on top!!
         self.aliens.draw(self.screen)
-
+        for power_up in self.power_ups.sprites():
+            power_up.draw_power_up()
         # Draw the score information.
         self.sb.show_score()
-
-        # Draw the play button if the game is inactive.
+        # Draw buttons if the game is inactive.
         if not self.stats.game_active:
             self.settings.set_trans_bg()
             self.buttons.draw_buttons()

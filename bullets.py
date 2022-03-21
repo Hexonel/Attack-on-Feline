@@ -1,5 +1,6 @@
 import pygame
 from pygame.sprite import Sprite
+
 # pygame.Rect(0,0, self.settings.bullet_width, self.settings.bullet_height)
 class Bullet(Sprite):
     """A class to manage bullets fired from the ship"""
@@ -9,7 +10,8 @@ class Bullet(Sprite):
         super().__init__()      # Sprite is parent class, because it has a lot of useful code for projectiles sort of objects
         self.screen = ai_game.screen    # screen required here as well so we can draw stuff
         self.settings = ai_game.settings
-        self.image = pygame.image.load('./images/bullet1.png')      # image of a bullet, instead of just simply assigning a color
+        self.stats = ai_game.stats
+        self.image = pygame.image.load(self.settings.bullet_info[self.stats.bullet_level]['image'])      # image of a bullet, instead of just simply assigning a color
         # Create a bullet rect at (0,0) and then set correct position
         self.rect = self.image.get_rect() #self.settings.bullet_width, self.settings.bullet_height)       # what(?)
         self.rect.midtop = ai_game.ship.rect.midtop     # midtop(?) "relative" to the ship! ship must be updated first!
