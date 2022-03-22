@@ -1,7 +1,5 @@
 #! /usr/bin/env python3
 # alien_invastion.py - The making of a 'space invader'-ish game!
-from time import sleep
-
 import pygame
 
 from settings import Settings
@@ -11,7 +9,7 @@ from ship import Ship
 from bullets import Bullet
 from alien import Alien
 from buttons import Buttons
-from power_ups import PowerUps
+from power_ups import PowerUps                      # TODO Fix the buttons so its not repetitive.
 
 class AlienInvasion:        # this one class contains the 'whole' program
     """Overall class to manage game assets and behavior."""
@@ -62,15 +60,26 @@ class AlienInvasion:        # this one class contains the 'whole' program
     def _check_events(self):
         """Respond to keypreses and mouse events"""
         for event in pygame.event.get():
+            self.mouse_pos = pygame.mouse.get_pos()
             if event.type == pygame.KEYDOWN:    # if/elif because multiple keys can be active/inactive
                 self._check_keydown_events(event)
             elif event.type == pygame.KEYUP:
                 self._check_keyup_events(event)
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = pygame.mouse.get_pos()
-                self.buttons._check_new_game(self, mouse_pos)
-                self.buttons._check_continue(mouse_pos)
-                self.buttons._check_exit(mouse_pos)
+                self.buttons._check_new_game(self, self.mouse_pos)
+                self.buttons._check_continue(self.mouse_pos)
+                self.buttons._check_exit(self.mouse_pos)
+            elif event.type == pygame.MOUSEMOTION:
+                if self.buttons.img1_rect.collidepoint(self.mouse_pos):
+                    self.buttons.img1 = pygame.image.load('./images/buttons/hover_new_game.png')
+                elif self.buttons.img2_rect.collidepoint(self.mouse_pos):
+                    self.buttons.img2 = pygame.image.load('./images/buttons/hover_continue1.png')
+                elif self.buttons.img3_rect.collidepoint(self.mouse_pos):
+                    self.buttons.img3 = pygame.image.load('./images/buttons/hover_exit.png')
+                else:
+                    self.buttons.img1 = pygame.image.load('./images/buttons/new_game.png')
+                    self.buttons.img2 = pygame.image.load('./images/buttons/continue1.png')
+                    self.buttons.img3 = pygame.image.load('./images/buttons/exit.png')
 
 
     def _check_keydown_events(self, event):
@@ -115,88 +124,8 @@ class AlienInvasion:        # this one class contains the 'whole' program
         """Open a screen with options and buttons"""
         self.stats.game_active = False
         pygame.mouse.set_visible(True)
-
-
-    def _update_bullets(self):
-        """Update position of bullets and get rid of old bullets."""
-        # Update bullet positions
-        self.bullets.update()       # Group() updates each sprite in the Group, defined at the top 
-        self.bullet.shoot_bullet(self) # need self included, an instance of this class
-        #Get rid of bullets that have disappeared.
-        for bullet in self.bullets.copy():      # makes a copy of the list, so the changes don't affect the original (?)
-            if bullet.rect.bottom <= 0:         # check this ^ a bit, to see why bother with this
-                self.bullets.remove(bullet)
-        self._check_bullet_alien_collisions()
-        
-
-    def _check_bullet_alien_collisions(self):
-        """Respond to bullet-alien collisions."""
-        # Remove any bullets and aliens that have collided.
-        collisions = pygame.sprite.groupcollide(    # checks for bullet and alien rects that are overlaping
-            self.bullets,self.aliens, self.settings.bullet_info[self.stats.bullet_level]['delete'], True)   # True(bullet) and True(alien) will delete thqe item it is connected to
-        if collisions:
-            for aliens in collisions.values():      # change a dict into a list which is 'hit aliens' long
-                self.stats.score += self.settings.alien_points * len(aliens)
-            self.sb.prep_score()
-            self.sb.check_high_score()
-        
-        if not self.aliens:
-            # Destroy existing bullets and create new fleet.
-            self.bullets.empty()
-            self._create_fleet()
-            self.settings.increase_speed()
-
-            # Increase level.
-            self.stats.level += 1
-            self.sb.prep_level()
-
-
-    def _update_aliens(self):
-        """Check if the fleet is at an edge, then update the positions of all aliens in the fleed."""
-        self._check_fleet_edges()
-        self.aliens.update()        # call update on all the aliens (in aliens Group)
-
-        # Look for alien-ship collisions.
-        if pygame.sprite.spritecollideany(self.ship, self.aliens):
-            self._ship_hit()
-
-        # Look for aliens hitting the bottom of the screen.
-        self._check_aliens_bottom()
-
-
-    def _ship_hit(self):
-        """Respond to the ship being hit by an alien."""
-        # Decrement the number of ships.
-        self.stats.ships_left -= 1      # Do it before if statement, so you don't have 4 lives, instead of 3.
-        self.sb.prep_ships()
-        if self.stats.ships_left > 0:
-            # Get rid of any remaining aliens and bullets.
-            self.aliens.empty()
-            self.bullets.empty()
-            self.power_ups.empty()
-
-            # Create a new fleet and center the ship.
-            self._create_fleet()
-            self.ship.center_ship()
-            if self.stats.bullet_level > 1:
-                self.stats.bullet_level -= 1
-
-            # Pause.
-            sleep(1)
-        else:
+        if self.stats.ships_left == 0:
             self.stats.continue_gray = True
-            self.stats.game_active = False
-            pygame.mouse.set_visible(True)
-
-
-    def _check_aliens_bottom(self):
-        """Check if any aliens have reached the bottom of the screen."""
-        screen_rect = self.screen.get_rect()
-        for alien in self.aliens.sprites():
-            if alien.rect.bottom >= screen_rect.bottom:
-                # Treat this the same as if the ship got hit.
-                self._ship_hit()
-                break
 
 
     def _create_fleet(self):
@@ -243,6 +172,31 @@ class AlienInvasion:        # this one class contains the 'whole' program
             alien.rect.y += self.settings.fleet_drop_speed
         self.settings.fleet_direction *= -1
 
+    
+    def _check_aliens_bottom(self):
+        """Check if any aliens have reached the bottom of the screen."""
+        screen_rect = self.screen.get_rect()
+        for alien in self.aliens.sprites():
+            if alien.rect.bottom >= screen_rect.bottom:
+                # Treat this the same as if the ship got hit.
+                self._ship_hit()
+                break
+
+
+    def _update_aliens(self):
+        """Check if the fleet is at an edge, then update the positions of all aliens in the fleed."""
+        self._check_fleet_edges()
+        self.aliens.update()        # call update on all the aliens (in aliens Group)
+        # Look for alien-ship collisions.
+        for alien in self.aliens:
+            if pygame.sprite.collide_rect(self.ship, alien):
+                self.aliens.remove(alien)
+                self._ship_hit()
+                if self.stats.ships_left == 0:
+                    self.pause_screen()
+        # Look for aliens hitting the bottom of the screen.
+        self._check_aliens_bottom()
+
 
     def _update_power_ups(self):
         """Update position of power_ups and get rid of old power_ups."""
@@ -256,7 +210,49 @@ class AlienInvasion:        # this one class contains the 'whole' program
                 self._power_ship_collisions()
                 self.power_ups.remove(power_up)
 
-    
+
+    def _update_bullets(self):
+        """Update position of bullets and get rid of old bullets."""
+        # Update bullet positions
+        self.bullets.update()       # Group() updates each sprite in the Group, defined at the top 
+        self.bullet.shoot_bullet(self) # need self included, an instance of this class
+        #Get rid of bullets that have disappeared.
+        for bullet in self.bullets.copy():      # makes a copy of the list, so the changes don't affect the original (?)
+            if bullet.rect.bottom <= 0:         # check this ^ a bit, to see why bother with this
+                self.bullets.remove(bullet)
+        self._check_bullet_alien_collisions()
+        
+
+    def _check_bullet_alien_collisions(self):
+        """Respond to bullet-alien collisions."""
+        # Remove any bullets and aliens that have collided.
+        collisions = pygame.sprite.groupcollide(    # checks for bullet and alien rects that are overlaping
+            self.bullets, self.aliens, self.settings.bullet_info[self.stats.bullet_level]['delete'], True)   # True(bullet) and True(alien) will delete thqe item it is connected to
+        if collisions:
+            for aliens in collisions.values():      # change a dict into a list which is 'hit aliens' long
+                self.stats.score += self.settings.alien_points * len(aliens)
+            self.sb.prep_score()
+            self.sb.check_high_score()
+        
+        if not self.aliens:
+            # Destroy existing bullets and create new fleet.
+            self.bullets.empty()
+            self._create_fleet()
+            self.settings.increase_speed()
+
+            # Increase level.
+            self.stats.level += 1
+            self.sb.prep_level()
+
+
+    def _ship_hit(self):
+        """Respond to the ship being hit by an alien."""
+        self.stats.ships_left -= 1
+        self.sb.prep_ships()
+        if self.stats.bullet_level > 1:
+            self.stats.bullet_level -= 1
+
+
     def _power_ship_collisions(self):
         """Check if the ship collected the power up."""
         if self.stats.bullet_level < 2 :
@@ -277,8 +273,9 @@ class AlienInvasion:        # this one class contains the 'whole' program
         self.sb.show_score()
         # Draw buttons if the game is inactive.
         if not self.stats.game_active:
+            self.mouse_pos = pygame.mouse.get_pos()
             self.settings.set_trans_bg()
-            self.buttons.draw_buttons()
+            self.buttons.draw_buttons(self.mouse_pos)
 
         pygame.display.flip()           # again (?)
     

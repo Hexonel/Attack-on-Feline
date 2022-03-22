@@ -1,5 +1,6 @@
 import sys
 import pygame
+from time import sleep
 
 class Buttons():
     def __init__(self, ai_game):
@@ -16,27 +17,27 @@ class Buttons():
         self.screen_rect = self.screen.get_rect()
         # Build buttons. Repetitive, but works for now.
         # New Game button.
-        self.img1 = pygame.image.load('./images/new_game.png')
+        self.img1 = pygame.image.load('./images/buttons/new_game.png')
         self.img1_rect = self.img1.get_rect()
         self.img1_rect.top = 150
         self.img1_rect.left = self.screen_rect.right /2 - 260
         # Continue button.
-        self.img2 = pygame.image.load('./images/continue0.png')
+        self.img2 = pygame.image.load('./images/buttons/continue0.png')
         self.img2_rect = self.img2.get_rect()
         self.img2_rect.top = 150 + self.img2_rect.height + 50
         self.img2_rect.left = self.screen_rect.right /2 - 260
         # Exit button.
-        self.img3 = pygame.image.load('./images/exit.png')
+        self.img3 = pygame.image.load('./images/buttons/exit.png')
         self.img3_rect = self.img3.get_rect()
         self.img3_rect.top = 150 + (self.img3_rect.height + 50) *2
         self.img3_rect.left = self.screen_rect.right /2 - 260
     
 
-    def draw_buttons(self):
+    def draw_buttons(self, mouse_pos):
         if self.stats.continue_gray:
-            self.img2 = pygame.image.load('./images/continue0.png')
-        else:
-            self.img2 = pygame.image.load('./images/continue1.png')
+            self.img2 = pygame.image.load('./images/buttons/continue0.png')
+        elif not self.img2_rect.collidepoint(mouse_pos):
+            self.img2 = pygame.image.load('./images/buttons/continue1.png')
         self.screen.blit(self.img1, self.img1_rect)
         self.screen.blit(self.img2, self.img2_rect)
         self.screen.blit(self.img3, self.img3_rect)
@@ -46,6 +47,8 @@ class Buttons():
         """Reset everything except the highest score and create a new game."""
         new_game_clicked = self.img1_rect.collidepoint(mouse_pos)
         if new_game_clicked and not self.stats.game_active:
+            self.screen.blit(pygame.image.load('./images/buttons/clicked_new_game.png'), self.img1_rect)
+            sleep(1)
             self.settings.initialize_dynamic_settings()
             self.stats.reset_stats()
             self.stats.game_active = True
