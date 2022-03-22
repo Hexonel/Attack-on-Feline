@@ -13,12 +13,12 @@ class Settings:
         # Ship settings
         # Bullet settings
         self.bullet_info = {
-            1: {'image': './images/bullet1.png', 'delete': True, 'speed': 15}, 
-            2: {'image': './images/bullet2.png', 'delete': False, 'speed': 20}
+            1: {'image': './images/bullet1.png', 'delete': True, 'speed': 10}, 
+            2: {'image': './images/bullet2.png', 'delete': False, 'speed': 10}
         }
         self.bullet_speed = self.bullet_info[self.stats.bullet_level]['speed']
         # Alien settings
-        self.fleet_drop_speed = 15
+        self.fleet_drop_speed = 10
         # How quickly the game speeds up
         self.speedup_scale = 1.1
         # How quickly the alien point values increase
@@ -31,7 +31,7 @@ class Settings:
         """Initialize settings that change throughout the game."""
         self.ship_speed = 8.5
         # self.bullet_speed = 15
-        self.alien_speed = 2.5
+        self.alien_speed = 4
 
         # fleet_direction of 1 represents right; -1 represents left.
         self.fleet_direction = 1

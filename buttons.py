@@ -31,28 +31,29 @@ class Buttons():
         self.img3_rect = self.img3.get_rect()
         self.img3_rect.top = 150 + (self.img3_rect.height + 50) *2
         self.img3_rect.left = self.screen_rect.right /2 - 260
-    
 
-    def draw_buttons(self, mouse_pos):
-        if self.stats.continue_gray:
-            self.img2 = pygame.image.load('./images/buttons/continue0.png')
-        elif not self.img2_rect.collidepoint(mouse_pos):
-            self.img2 = pygame.image.load('./images/buttons/continue1.png')
-        self.screen.blit(self.img1, self.img1_rect)
-        self.screen.blit(self.img2, self.img2_rect)
-        self.screen.blit(self.img3, self.img3_rect)
+
+
+    def _draw_clicked_button(self, rect):
+        """Draws a changed buttons, and resets all three"""
+        pygame.display.update(rect)
+        self.img1 = pygame.image.load('./images/buttons/new_game.png')
+        self.img2 = pygame.image.load('./images/buttons/continue1.png')
+        self.img3 = pygame.image.load('./images/buttons/exit.png')
+        sleep(0.15)
 
 
     def _check_new_game(self, ai_game, mouse_pos):
         """Reset everything except the highest score and create a new game."""
         new_game_clicked = self.img1_rect.collidepoint(mouse_pos)
         if new_game_clicked and not self.stats.game_active:
-            self.screen.blit(pygame.image.load('./images/buttons/clicked_new_game.png'), self.img1_rect)
-            sleep(1)
+            self.img1 = pygame.image.load('./images/buttons/clicked_new_game.png')
+            rect = self.screen.blit(self.img1, self.img1_rect)
+            self.stats.continue_gray = False
+            self._draw_clicked_button(rect)
             self.settings.initialize_dynamic_settings()
             self.stats.reset_stats()
             self.stats.game_active = True
-            self.stats.continue_gray = False
             self.sb.prep_score()
             self.sb.prep_level()
             self.sb.prep_ships()
@@ -73,11 +74,17 @@ class Buttons():
     def _check_continue(self, mouse_pos):
         continue_clicked = self.img2_rect.collidepoint(mouse_pos)
         if continue_clicked and not self.stats.game_active and not self.stats.continue_gray:
+            self.img2 = pygame.image.load('./images/buttons/clicked_continue1.png')
+            rect = self.screen.blit(self.img2, self.img2_rect) 
             self.stats.game_active = True
             pygame.mouse.set_visible(False)
+            self._draw_clicked_button(rect)
 
     
     def _check_exit(self, mouse_pos):
         exit_clicked = self.img3_rect.collidepoint(mouse_pos)
         if exit_clicked and not self.stats.game_active:
+            self.img3 = pygame.image.load('./images/buttons/clicked_exit.png')
+            rect = self.screen.blit(self.img3, self.img3_rect)
+            self._draw_clicked_button(rect)
             sys.exit()

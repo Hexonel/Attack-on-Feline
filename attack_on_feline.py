@@ -59,27 +59,39 @@ class AlienInvasion:        # this one class contains the 'whole' program
 
     def _check_events(self):
         """Respond to keypreses and mouse events"""
+        self.mouse_pos = pygame.mouse.get_pos()
         for event in pygame.event.get():
-            self.mouse_pos = pygame.mouse.get_pos()
             if event.type == pygame.KEYDOWN:    # if/elif because multiple keys can be active/inactive
                 self._check_keydown_events(event)
             elif event.type == pygame.KEYUP:
                 self._check_keyup_events(event)
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                self.buttons._check_new_game(self, self.mouse_pos)
-                self.buttons._check_continue(self.mouse_pos)
-                self.buttons._check_exit(self.mouse_pos)
             elif event.type == pygame.MOUSEMOTION:
                 if self.buttons.img1_rect.collidepoint(self.mouse_pos):
                     self.buttons.img1 = pygame.image.load('./images/buttons/hover_new_game.png')
-                elif self.buttons.img2_rect.collidepoint(self.mouse_pos):
+                elif self.buttons.img2_rect.collidepoint(self.mouse_pos) and not self.stats.continue_gray:
                     self.buttons.img2 = pygame.image.load('./images/buttons/hover_continue1.png')
                 elif self.buttons.img3_rect.collidepoint(self.mouse_pos):
                     self.buttons.img3 = pygame.image.load('./images/buttons/hover_exit.png')
                 else:
                     self.buttons.img1 = pygame.image.load('./images/buttons/new_game.png')
-                    self.buttons.img2 = pygame.image.load('./images/buttons/continue1.png')
+                    if self.stats.continue_gray:
+                        self.buttons.img2 = pygame.image.load('./images/buttons/continue0.png')
+                    else:
+                        self.buttons.img2 = pygame.image.load('./images/buttons/continue1.png')
                     self.buttons.img3 = pygame.image.load('./images/buttons/exit.png')
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                self.buttons._check_new_game(self, self.mouse_pos)
+                self.buttons._check_continue(self.mouse_pos)
+                self.buttons._check_exit(self.mouse_pos)
+
+
+    def draw_buttons(self):
+        pygame.mouse.set_visible(True)
+        self.stats.game_active = False
+        self._check_events()
+        self.screen.blit(self.buttons.img1, self.buttons.img1_rect)
+        self.screen.blit(self.buttons.img2, self.buttons.img2_rect)
+        self.screen.blit(self.buttons.img3, self.buttons.img3_rect)
 
 
     def _check_keydown_events(self, event):
@@ -96,7 +108,7 @@ class AlienInvasion:        # this one class contains the 'whole' program
             self.buttons._check_new_game(self, (self.settings.screen_width /2, 200))
         elif event.key == pygame.K_ESCAPE:
             if self.stats.game_active == True:
-                self.pause_screen()
+                self.stats.game_active = False
             else:
                 self.buttons._check_continue((self.settings.screen_width /2, self.settings.screen_height /2))
         elif self.stats.game_active == False and event.key == pygame.K_q:
@@ -117,15 +129,7 @@ class AlienInvasion:        # this one class contains the 'whole' program
             self.ship.moving_bottom = False
         elif event.key == pygame.K_SPACE:
             self.bullet.shooting = False
-            self.bullet.time = 6           # required!! so there is no delay the next time space is pressed.
-
-
-    def pause_screen(self):
-        """Open a screen with options and buttons"""
-        self.stats.game_active = False
-        pygame.mouse.set_visible(True)
-        if self.stats.ships_left == 0:
-            self.stats.continue_gray = True
+            self.bullet.time = 6          # required!! so there is no delay the next time space is pressed.
 
 
     def _create_fleet(self):
@@ -174,13 +178,11 @@ class AlienInvasion:        # this one class contains the 'whole' program
 
     
     def _check_aliens_bottom(self):
-        """Check if any aliens have reached the bottom of the screen."""
+        """Check if an alien reached the bottom of the screen."""
         screen_rect = self.screen.get_rect()
         for alien in self.aliens.sprites():
             if alien.rect.bottom >= screen_rect.bottom:
-                # Treat this the same as if the ship got hit.
-                self._ship_hit()
-                break
+                self.stats.ships_left = 0       # it's game over.
 
 
     def _update_aliens(self):
@@ -192,9 +194,6 @@ class AlienInvasion:        # this one class contains the 'whole' program
             if pygame.sprite.collide_rect(self.ship, alien):
                 self.aliens.remove(alien)
                 self._ship_hit()
-                if self.stats.ships_left == 0:
-                    self.pause_screen()
-        # Look for aliens hitting the bottom of the screen.
         self._check_aliens_bottom()
 
 
@@ -259,6 +258,13 @@ class AlienInvasion:        # this one class contains the 'whole' program
             # Limited to a single power_up at the moment.
             self.stats.bullet_level += 1
 
+    
+    def game_over(self):
+        if self.stats.ships_left == 0:
+            self.stats.continue_gray = True
+            self.buttons.img2 = pygame.image.load('./images/buttons/continue0.png')
+            self.stats.game_active = False
+
 
     def _update_screen(self):
         """Update images on the screen, and flip to the new screen"""
@@ -271,14 +277,12 @@ class AlienInvasion:        # this one class contains the 'whole' program
             power_up.draw_power_up()
         # Draw the score information.
         self.sb.show_score()
+        self.game_over()
         # Draw buttons if the game is inactive.
         if not self.stats.game_active:
-            self.mouse_pos = pygame.mouse.get_pos()
             self.settings.set_trans_bg()
-            self.buttons.draw_buttons(self.mouse_pos)
-
-        pygame.display.flip()           # again (?)
-    
+            self.draw_buttons()
+        pygame.display.flip()    
 
 if __name__ == '__main__':
     # Make a game instance, and run the game.
